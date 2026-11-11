@@ -417,7 +417,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(orders_created_total[$__range]))",
+          "expr": "sum(increase(orders_placed_total[$__range]))",
           "legendFormat": "orders"
         }
       ],
@@ -483,7 +483,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(orders_created_total[$__rate_interval])) * 60",
+          "expr": "sum(rate(orders_placed_total[$__rate_interval])) * 60",
           "legendFormat": "orders/min"
         }
       ],
