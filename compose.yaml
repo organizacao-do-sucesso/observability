@@ -9,8 +9,9 @@
 #     prometheus.path: /order/actuator/prometheus   # metrics path
 #     logs.collect: "true"                          # ship stdout/stderr to Loki
 #
-# Grafana:    http://localhost:3000  (admin / admin by default)
-# Prometheus: http://localhost:9090
+# Exposed only through the gateway (no host ports):
+#   Grafana:    http://localhost:8080/grafana/      (public route, Grafana's own login: admin / admin by default)
+#   Prometheus: http://localhost:8080/prometheus/   (requires the store login cookie)
 
 services:
 
@@ -21,12 +22,13 @@ services:
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-7d}
+      # served under /prometheus so the gateway can route to it
+      - --web.route-prefix=/prometheus
+      - --web.external-url=${OBSERVABILITY_PUBLIC_URL:-http://localhost:8080}/prometheus
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - prometheus-data:/prometheus
-    ports:
-      - 9090:9090
 
   loki:
     image: grafana/loki:3.5.0
@@ -57,12 +59,13 @@ services:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
       GF_USERS_ALLOW_SIGN_UP: "false"
+      # served under /grafana so the gateway can route to it
+      GF_SERVER_ROOT_URL: ${OBSERVABILITY_PUBLIC_URL:-http://localhost:8080}/grafana/
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana-data:/var/lib/grafana
-    ports:
-      - 3000:3000
     depends_on:
       - prometheus
       - loki

@@ -2,12 +2,16 @@
 
 Metrics, logs and dashboards for the store platform.
 
-| Component  | Role                                             | URL                    |
-|------------|--------------------------------------------------|------------------------|
-| Prometheus | Scrapes metrics from labeled containers          | http://localhost:9090  |
-| Loki       | Stores logs                                      | internal (`loki:3100`) |
-| Alloy      | Reads container stdout and ships it to Loki      | internal               |
-| Grafana    | Dashboards (`Store / Store - Services`)          | http://localhost:3000  |
+| Component  | Role                                        | Access                                   |
+|------------|---------------------------------------------|------------------------------------------|
+| Prometheus | Scrapes metrics from labeled containers     | `http://<gateway>/prometheus/` (store login required) |
+| Loki       | Stores logs                                 | internal (`loki:3100`)                   |
+| Alloy      | Reads container stdout and ships it to Loki | internal                                 |
+| Grafana    | Dashboards (`Store / Store - Services`)     | `http://<gateway>/grafana/` (public route, Grafana login) |
+
+Nothing is published on host ports: like every other service, Grafana and Prometheus
+are reached through the gateway, which routes `/grafana/**` and `/prometheus/**`.
+Both are served under those sub-paths (`GF_SERVER_SERVE_FROM_SUB_PATH`, `--web.route-prefix`).
 
 ## How it is used
 
@@ -49,5 +53,6 @@ For a Spring Boot service, the metrics endpoint needs:
 | `GRAFANA_ADMIN_USER`     | `admin` |
 | `GRAFANA_ADMIN_PASSWORD` | `admin` |
 | `PROMETHEUS_RETENTION`   | `7d`    |
+| `OBSERVABILITY_PUBLIC_URL` | `http://localhost:8080` (the gateway's public address, used in links and redirects) |
 
 Prometheus and Alloy read `/var/run/docker.sock` (read-only) to discover containers.
