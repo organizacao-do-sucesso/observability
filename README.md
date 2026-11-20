@@ -4,7 +4,7 @@ Metrics, logs and dashboards for the store platform.
 
 | Component  | Role                                        | Access                                   |
 |------------|---------------------------------------------|------------------------------------------|
-| Prometheus | Scrapes metrics from labeled containers     | `http://<gateway>/prometheus/` (store login required) |
+| Prometheus | Scrapes metrics from labeled containers     | `http://<gateway>/prometheus/` (store login, administrator role) |
 | Loki       | Stores logs                                 | internal (`loki:3100`)                   |
 | Alloy      | Reads container stdout and ships it to Loki | internal                                 |
 | Grafana    | Dashboards (`Store / Store - Services`)     | `http://<gateway>/grafana/` (public route, Grafana login) |
@@ -56,3 +56,31 @@ For a Spring Boot service, the metrics endpoint needs:
 | `OBSERVABILITY_PUBLIC_URL` | `http://localhost:8080` (the gateway's public address, used in links and redirects) |
 
 Prometheus and Alloy read `/var/run/docker.sock` (read-only) to discover containers.
+
+## Kubernetes
+
+`kustomization.yaml` (repository root) renders the same stack for the `store`
+namespace, reusing `loki/loki.yaml`, the Grafana provisioning and the dashboard.
+Only discovery changes, since there is no Docker socket in a cluster:
+
+| | docker compose | Kubernetes |
+|---|---|---|
+| Prometheus targets | containers labeled `prometheus.scrape=true` | pods annotated `prometheus.io/scrape: "true"` (`k8s/prometheus.yml`) |
+| Logs | containers labeled `logs.collect=true` | every pod of the `store` namespace (`k8s/config.alloy`) |
+| Permissions | read-only Docker socket | `Role` limited to reading pods (and pod logs, for Alloy) |
+
+A service opts in to metrics with annotations on its pod template:
+
+```yaml
+template:
+  metadata:
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "8080"
+      prometheus.io/path: /order/actuator/prometheus
+```
+
+The platform consumes it in `platform/k8s/base/kustomization.yaml`. Grafana
+reads `GF_SECURITY_ADMIN_USER` and `GF_SECURITY_ADMIN_PASSWORD` from the
+`grafana-secret` Secret, and `OBSERVABILITY_PUBLIC_URL` comes from the
+`observability-config` ConfigMap.

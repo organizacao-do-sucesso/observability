@@ -11,7 +11,7 @@
 #
 # Exposed only through the gateway (no host ports):
 #   Grafana:    http://localhost:8080/grafana/      (public route, Grafana's own login: admin / admin by default)
-#   Prometheus: http://localhost:8080/prometheus/   (requires the store login cookie)
+#   Prometheus: http://localhost:8080/prometheus/   (requires a store login with the administrator role)
 
 services:
 

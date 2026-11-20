@@ -1,0 +1,41 @@
+# Prometheus configuration for Kubernetes (the compose stack uses prometheus/prometheus.yml).
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+
+  - job_name: prometheus
+    metrics_path: /prometheus/metrics
+    static_configs:
+      - targets: [ 'localhost:9090' ]
+
+  # Every pod in the store namespace annotated with prometheus.io/scrape: "true"
+  # is scraped automatically, so adding a service never requires changing this file:
+  #   prometheus.io/scrape: "true"
+  #   prometheus.io/port: "8080"
+  #   prometheus.io/path: /order/actuator/prometheus
+  - job_name: services
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names: [ store ]
+    relabel_configs:
+      - source_labels: [ __meta_kubernetes_pod_annotation_prometheus_io_scrape ]
+        regex: "true"
+        action: keep
+      - source_labels: [ __meta_kubernetes_pod_phase ]
+        regex: Running
+        action: keep
+      - source_labels: [ __meta_kubernetes_pod_ip, __meta_kubernetes_pod_annotation_prometheus_io_port ]
+        regex: (.+);(.+)
+        replacement: $1:$2
+        target_label: __address__
+      - source_labels: [ __meta_kubernetes_pod_annotation_prometheus_io_path ]
+        regex: (.+)
+        target_label: __metrics_path__
+      # same "service" label as the compose stack, so the Grafana dashboard works unchanged
+      - source_labels: [ __meta_kubernetes_pod_label_app ]
+        target_label: service
+      - source_labels: [ __meta_kubernetes_pod_name ]
+        target_label: pod
