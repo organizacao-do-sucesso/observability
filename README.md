@@ -7,7 +7,7 @@ Metrics, logs and dashboards for the store platform.
 | Prometheus | Scrapes metrics from labeled containers     | `http://<gateway>/prometheus/` (store login, administrator role) |
 | Loki       | Stores logs                                 | internal (`loki:3100`)                   |
 | Alloy      | Reads container stdout and ships it to Loki | internal                                 |
-| Grafana    | Dashboards (`Store / Store - Services`)     | `http://<gateway>/grafana/` (public route, Grafana login) |
+| Grafana    | Service and autoscaling dashboards          | `http://<gateway>/grafana/` (public route, Grafana login) |
 
 Nothing is published on host ports: like every other service, Grafana and Prometheus
 are reached through the gateway, which routes `/grafana/**` and `/prometheus/**`.
@@ -84,3 +84,25 @@ The platform consumes it in `platform/k8s/base/kustomization.yaml`. Grafana
 reads `GF_SECURITY_ADMIN_USER` and `GF_SECURITY_ADMIN_PASSWORD` from the
 `grafana-secret` Secret, and `OBSERVABILITY_PUBLIC_URL` comes from the
 `observability-config` ConfigMap.
+
+### Gateway autoscaling dashboard
+
+`Store / Gateway - Autoscaling` correlates the two independent scaling layers:
+
+- HPA current/desired replicas, min/max limits and CPU utilization versus the
+  configured target;
+- CPU consumption by gateway Pod and available/unavailable Deployment replicas;
+- Cluster Autoscaler ready nodes, unschedulable Pods, safety status, errors and
+  cumulative scale-up/scale-down activity.
+
+The HPA panels require `horizontalpodautoscaler/gateway` to exist. The Cluster
+Autoscaler panels stay empty when that component is not installed; this does not
+affect the gateway or the HPA panels.
+
+The Kubernetes configuration uses ephemeral `emptyDir` storage. Restarting the
+Grafana, Loki or Prometheus Pod loses its local data; this is intentional for the
+temporary course environment.
+
+The platform repository owns the Kubernetes deployment flow. Grafana credential
+creation, AWS/EKS deployment and validation commands are documented centrally in
+`platform/k8s/AWS.md`.

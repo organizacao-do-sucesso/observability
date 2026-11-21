@@ -4,27 +4,33 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: store
-
 resources:
   - k8s/k8s.yaml
+  - k8s/autoscaling-metrics.yaml
 
 configMapGenerator:
   - name: prometheus-config
+    namespace: store
     files:
       - prometheus.yml=k8s/prometheus.yml
   - name: alloy-config
+    namespace: store
     files:
       - config.alloy=k8s/config.alloy
   - name: loki-config
+    namespace: store
     files:
       - loki.yaml=loki/loki.yaml
   - name: grafana-datasources
+    namespace: store
     files:
       - datasources.yaml=grafana/provisioning/datasources/datasources.yaml
   - name: grafana-dashboard-provider
+    namespace: store
     files:
       - dashboards.yaml=grafana/provisioning/dashboards/dashboards.yaml
   - name: grafana-dashboards
+    namespace: store
     files:
       - store-services.json=grafana/dashboards/store-services.json
+      - gateway-autoscaling.json=grafana/dashboards/gateway-autoscaling.json
